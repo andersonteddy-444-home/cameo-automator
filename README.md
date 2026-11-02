@@ -7,12 +7,12 @@ A free, local-network web controller for the Silhouette Cameo 2. Run it on Linux
 - Live USB connection and machine status, polled every three seconds.
 - SVG upload and preview of the processed paths actually used for motion.
 - Uniform scaling, placement in millimeters, bounds validation within 304 × 304 mm.
-- Travel-only test, pen, and cut modes; speed, pressure, and multiple passes.
+- Raised-tool travel, continuous tool-removed test, pen, and cut modes; speed, pressure, and multiple passes.
 - Carriage travel to zero or the documented 304 mm usable width.
 - Cancel remaining movements after the current buffered movement completes.
 - A user systemd service for automatic startup.
 
-Travel-only mode sends no initialization, pressure, tool-selection, or draw commands. Carriage travel returns the material-feed coordinate to zero too. Speed range is 1–10. Cut mode currently assumes a standard 0.9 mm blade offset; blade depth is adjusted manually.
+Raised-tool travel sends no initialization, pressure, tool-selection, or draw commands, but can pause at each point. Continuous tool-removed testing uses draw commands and can lower the holder; it requires explicit confirmation that the blade or pen is removed and sends no pressure settings. Successful jobs return to zero; cancelled jobs stay in place. Redundant points are simplified within 0.075 mm and command batches are limited to 880 bytes. Carriage travel returns the material-feed coordinate to zero too. Speed range is 1–10. Cut mode currently assumes a standard 0.9 mm blade offset; blade depth is adjusted manually.
 
 ## Installation on Linux Mint / Ubuntu
 

@@ -133,6 +133,27 @@ def upload():
     DESIGNS[ident] = dict(paths=paths, width=width, height=height)
     return jsonify(id=ident, width=width, height=height, paths=paths, count=len(paths))
 
+def simplify(points, tolerance=1.5):
+    """Ramer–Douglas–Peucker, in 0.05 mm device units (0.075 mm tolerance)."""
+    clean=[]
+    for point in points:
+        if not clean or point != clean[-1]: clean.append(point)
+    if len(clean)<3: return clean
+    keep={0,len(clean)-1}; stack=[(0,len(clean)-1)]
+    while stack:
+        first,last=stack.pop()
+        ax,ay=clean[first];bx,by=clean[last]
+        dx,dy=bx-ax,by-ay;den=dx*dx+dy*dy
+        furthest=-1;distance=-1
+        for i in range(first+1,last):
+            x,y=clean[i]
+            t=max(0,min(1,((x-ax)*dx+(y-ay)*dy)/den)) if den else 0
+            d=(x-ax-t*dx)**2+(y-ay-t*dy)**2
+            if d>distance:distance=d;furthest=i
+        if distance>tolerance*tolerance:
+            keep.add(furthest);stack.extend([(first,furthest),(furthest,last)])
+    return [clean[i] for i in sorted(keep)]
+
 def placed(data):
     design = DESIGNS.get(data.get('id'))
     if not design: raise ValueError('Upload the SVG again.')
@@ -142,7 +163,7 @@ def placed(data):
     paths = [[[round((x*scale+left)*20),round((y*scale+top)*20)] for x,y in path] for path in design['paths']]
     if any(not (0 <= x <= 6080 and 0 <= y <= 6080) for path in paths for x,y in path):
         raise ValueError('Design exceeds the 304 × 304 mm working area.')
-    return paths
+    return [simplify(path) for path in paths]
 
 def launch(work):
     if not LOCK.acquire(False): raise ValueError('A machine operation is already running.')
@@ -184,11 +205,13 @@ def start():
     pressure=int(number(data,'pressure',1,1,33))
     passes=int(number(data,'passes',1,1,5))
     mode=data.get('mode')
-    if mode not in ('travel','pen','cut'): raise ValueError('Choose a job mode.')
+    if mode not in ('travel','tool-free','pen','cut'): raise ValueError('Choose a job mode.')
+    if mode=='tool-free' and data.get('tool_removed') is not True:
+        raise ValueError('Remove the blade or pen and confirm the tool holder is empty.')
     def work(d):
         update(message='Running '+mode+' job…')
         # Travel mode never initializes or sends cutter configuration or draw commands.
-        if mode == 'travel':
+        if mode in ('travel','tool-free'):
             send(d,['Z6080,6080',f'!{speed}'])
         else:
             d.write(1,b'\x1b\x04',timeout=3000)
@@ -204,7 +227,7 @@ def start():
                     cmds.append(f'{prefix}{y},{x}')
                 batch=[]
                 for cmd in cmds:
-                    if sum(len(c)+1 for c in batch)+len(cmd)+1>256:
+                    if sum(len(c)+1 for c in batch)+len(cmd)+1>880:
                         if CANCEL.is_set(): break
                         send(d,batch);wait_ready(d)
                         last=batch[-1][1:]
@@ -220,7 +243,10 @@ def start():
         # Raise the empty/tool holder at the last transmitted coordinate.
         if mode!='travel' and last:
             send(d,['M'+last]);wait_ready(d)
-        update(message='Cancelled remaining paths; machine stopped.' if CANCEL.is_set() else 'Job complete; Ready',progress=STATE['progress'] if CANCEL.is_set() else 100)
+        if not CANCEL.is_set():
+            update(message='Returning to zero…')
+            send(d,['M0,0']);wait_ready(d)
+        update(message='Cancelled remaining paths; carriage left in place.' if CANCEL.is_set() else 'Job complete; returned to zero; Ready',progress=STATE['progress'] if CANCEL.is_set() else 100)
     return launch(work)
 
 @app.post('/api/cancel')
