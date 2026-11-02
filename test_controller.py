@@ -67,4 +67,27 @@ class ControllerTests(unittest.TestCase):
             self.assertFalse(any(cmd.startswith(('FX','FC','FN')) for cmd in commands))
             self.assertEqual(commands[-1],'M0,0')
 
+    def test_mat_and_roll_boundaries(self):
+        app.DESIGNS['long']=dict(paths=[[[0,0],[100,500]]],width=100,height=500)
+        with self.assertRaises(ValueError):app.placed(dict(id='long'))
+        self.assertEqual(app.placed(dict(id='long',material='mat24'))[-1][-1],[2200,10200])
+        self.assertEqual(app.material_area(dict(material='roll',rollWidth=250,rollLength=1000)),(250,1000))
+        with self.assertRaises(ValueError):app.placed(dict(id='long',material='roll',rollWidth=80,rollLength=1000))
+        with self.assertRaises(ValueError):app.material_area(dict(material='roll',rollLength=3001))
+        with self.assertRaises(ValueError):app.material_area(dict(material='invalid'))
+
+    def test_long_mat_job_sends_selected_boundary(self):
+        app.CANCEL.clear()
+        app.DESIGNS['long']=dict(paths=[[[0,0],[100,500]]],width=100,height=500)
+        def immediate(fn):
+            fn('mock')
+            return app.jsonify(accepted=True)
+        with patch('app.launch',side_effect=immediate),patch('app.send') as send,patch('app.wait_ready'):
+            r=self.post('/api/start',dict(id='long',material='mat24',mode='travel',ready=True))
+            self.assertEqual(r.status_code,200,r.json)
+            commands=[cmd for call in send.call_args_list for cmd in call.args[1]]
+            self.assertIn('Z12192,6080',commands)
+            self.assertEqual(commands[-1],'M0,0')
+            self.assertTrue(all(cmd.startswith(('M','Z','!')) for cmd in commands))
+
 if __name__=='__main__':unittest.main()

@@ -6,7 +6,7 @@ A free, local-network web controller for the Silhouette Cameo 2. Run it on Linux
 
 - Live USB connection and machine status, polled every three seconds.
 - SVG upload and preview of the processed paths actually used for motion.
-- Uniform scaling and placement within 304 × 304 mm. Drag the uploaded SVG on the pad; coordinate fields update automatically. Arrow keys move a selected design 1 mm, or 10 mm with Shift. Dragging stays inside the pad, clears readiness confirmation, and is disabled during jobs.
+- Material setup dropdown: 12 × 12-inch mat (304 × 304 mm usable), 12 × 24-inch mat (304 × 609.6 mm usable), or roll-fed vinyl without a mat. Roll width and reserved job length are entered in inches, up to 304 mm wide and 3000 mm long. Preview, dragging, validation, and machine boundaries use the selected area. Uniform scaling and placement. Drag the uploaded SVG on the pad; coordinate fields update automatically. Arrow keys move a selected design 1 mm, or 10 mm with Shift. Dragging stays inside the pad, clears readiness confirmation, and is disabled during jobs.
 - Motion-only testing, pen, and cut modes; speed, pressure, and multiple passes.
 - Carriage travel to zero or the documented 304 mm usable width.
 - Cancel remaining movements after the current buffered movement completes.
@@ -58,7 +58,7 @@ This is an early controller, not a mature replacement for commercial cutting sof
 - No registration-mark print-and-cut alignment, automatic material detection, nesting, or persistent queue yet.
 - Original SVG colors, fills, and stroke widths do not select operations. Every supported visible shape becomes a followed path.
 - Unsupported text, images, clones, clipping, masks, scripts, and linked content are rejected. Convert/remove these in Inkscape first.
-- Restricted to a 304 mm square area for the first version, even with larger mats.
+- Usable width remains 304 mm for Cameo 2. Roll-fed and 24-inch mat jobs need physical acceptance testing; material loading and roller setup remain manual.
 - The web interface is for a **trusted LAN**. It uses request tokens and host validation to limit cross-site requests, but does not provide user authentication or HTTPS. Do not expose it directly to the Internet.
 - Keep hands and cleaning materials clear during movement. Manual loading and checking remain necessary.
 

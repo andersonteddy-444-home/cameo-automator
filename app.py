@@ -154,15 +154,24 @@ def simplify(points, tolerance=1.5):
             keep.add(furthest);stack.extend([(first,furthest),(furthest,last)])
     return [clean[i] for i in sorted(keep)]
 
+def material_area(data):
+    material=data.get('material','mat12')
+    if material=='mat12': return 304.0,304.0
+    if material=='mat24': return 304.0,609.6
+    if material=='roll':
+        return number(data,'rollWidth',304,25,304),number(data,'rollLength',609.6,25,3000)
+    raise ValueError('Choose a supported mat or roll-fed vinyl.')
+
 def placed(data):
     design = DESIGNS.get(data.get('id'))
     if not design: raise ValueError('Upload the SVG again.')
+    width,height=material_area(data)
     scale = number(data, 'scale', 1, .001, 1000)
-    left = number(data, 'left', 10, 0, 304)
-    top = number(data, 'top', 10, 0, 304)
+    left = number(data, 'left', 10, 0, width)
+    top = number(data, 'top', 10, 0, height)
     paths = [[[round((x*scale+left)*20),round((y*scale+top)*20)] for x,y in path] for path in design['paths']]
-    if any(not (0 <= x <= 6080 and 0 <= y <= 6080) for path in paths for x,y in path):
-        raise ValueError('Design exceeds the 304 × 304 mm working area.')
+    if any(not (0 <= x <= round(width*20) and 0 <= y <= round(height*20)) for path in paths for x,y in path):
+        raise ValueError(f'Design exceeds the selected {width:g} × {height:g} mm working area.')
     return [simplify(path) for path in paths]
 
 def launch(work):
@@ -201,6 +210,8 @@ def start():
     data=request.get_json()
     if data.get('ready') is not True: raise ValueError('Confirm tool, material, and placement are ready.')
     paths=placed(data)
+    width,height=material_area(data)
+    boundary=f'Z{round(height*20)},{round(width*20)}'
     speed=int(number(data,'speed',3,1,10))
     pressure=int(number(data,'pressure',1,1,33))
     passes=int(number(data,'passes',1,1,5))
@@ -210,10 +221,10 @@ def start():
         update(message='Running '+mode+' job…')
         # Travel mode never initializes or sends cutter configuration or draw commands.
         if mode in ('travel','tool-free'):
-            send(d,['Z6080,6080',f'!{speed}'])
+            send(d,[boundary,f'!{speed}'])
         else:
             d.write(1,b'\x1b\x04',timeout=3000)
-            send(d,[f'!{speed}',f'FX{pressure}','FC0' if mode=='pen' else 'FC18','FY0','FN0','TB50,0','\\0,0','Z6080,6080','L0','FE0,0','FF0,0,0'])
+            send(d,[f'!{speed}',f'FX{pressure}','FC0' if mode=='pen' else 'FC18','FY0','FN0','TB50,0','\\0,0',boundary,'L0','FE0,0','FF0,0,0'])
         total=sum(len(p) for p in paths)*passes
         done=0
         last=None
