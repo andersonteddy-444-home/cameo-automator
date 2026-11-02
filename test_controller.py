@@ -52,11 +52,10 @@ class ControllerTests(unittest.TestCase):
             self.assertEqual(commands[-1],'M0,0')
             self.assertTrue(all(cmd.startswith(('M','Z','!')) for cmd in commands))
 
-    def test_continuous_test_requires_empty_tool_and_sends_no_pressure(self):
+    def test_legacy_test_mode_sends_only_motion_commands(self):
         app.CANCEL.clear()
         app.DESIGNS['job-test']=dict(paths=[[[0,0],[10,0],[10,10]]],width=10,height=10)
         params=dict(id='job-test',mode='tool-free',ready=True)
-        self.assertEqual(self.post('/api/start',params).status_code,400)
         def immediate(fn):
             fn('mock')
             return app.jsonify(accepted=True)
@@ -64,7 +63,7 @@ class ControllerTests(unittest.TestCase):
             r=self.post('/api/start',dict(params,tool_removed=True))
             self.assertEqual(r.status_code,200,r.json)
             commands=[cmd for call in send.call_args_list for cmd in call.args[1]]
-            self.assertTrue(any(cmd.startswith('D') for cmd in commands))
+            self.assertTrue(all(cmd.startswith(('M','Z','!')) for cmd in commands))
             self.assertFalse(any(cmd.startswith(('FX','FC','FN')) for cmd in commands))
             self.assertEqual(commands[-1],'M0,0')
 

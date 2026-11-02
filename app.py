@@ -206,8 +206,6 @@ def start():
     passes=int(number(data,'passes',1,1,5))
     mode=data.get('mode')
     if mode not in ('travel','tool-free','pen','cut'): raise ValueError('Choose a job mode.')
-    if mode=='tool-free' and data.get('tool_removed') is not True:
-        raise ValueError('Remove the blade or pen and confirm the tool holder is empty.')
     def work(d):
         update(message='Running '+mode+' job…')
         # Travel mode never initializes or sends cutter configuration or draw commands.
@@ -223,7 +221,7 @@ def start():
             for path in paths:
                 cmds=[]
                 for i,(x,y) in enumerate(path):
-                    prefix='M' if i==0 or mode=='travel' else 'D'
+                    prefix='M' if i==0 or mode in ('travel','tool-free') else 'D'
                     cmds.append(f'{prefix}{y},{x}')
                 batch=[]
                 for cmd in cmds:
@@ -241,7 +239,7 @@ def start():
                     done+=len(batch);update(progress=round(100*done/total))
             if CANCEL.is_set(): break
         # Raise the empty/tool holder at the last transmitted coordinate.
-        if mode!='travel' and last:
+        if mode not in ('travel','tool-free') and last:
             send(d,['M'+last]);wait_ready(d)
         if not CANCEL.is_set():
             update(message='Returning to zero…')
