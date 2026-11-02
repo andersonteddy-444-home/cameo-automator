@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const html=fs.readFileSync(require('path').join(__dirname,'templates/index.html'),'utf8');
+const js=html.split('<script>')[1].split('</script>')[0].replace('{{token|tojson}}','"test-token"');
+new vm.Script(js);
+const fn=js.slice(js.indexOf('function moveDesign('),js.indexOf("$('designHit').addEventListener('pointerdown'"));
+const elements={scale:{value:100},left:{value:10},top:{value:10},ready:{checked:true}};
+const ctx={design:{width:100,height:50},running:false,$:id=>elements[id],val:id=>Number(elements[id].value),refresh:()=>{}};
+vm.createContext(ctx);vm.runInContext(fn,ctx);
+ctx.moveDesign(-20,400);assert.equal(Number(elements.left.value),0);assert.equal(Number(elements.top.value),254);assert.equal(elements.ready.checked,false);
+ctx.moveDesign(30.127,40.123);assert.equal(Number(elements.left.value),30.15);assert.equal(Number(elements.top.value),40.1);
+ctx.running=true;ctx.moveDesign(100,100);assert.equal(Number(elements.left.value),30.15);
+console.log('JavaScript syntax, pad-edge limits, 0.05 mm snapping, confirmation reset, and running-job lock passed.');

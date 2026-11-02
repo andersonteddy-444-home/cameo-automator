@@ -6,7 +6,7 @@ A free, local-network web controller for the Silhouette Cameo 2. Run it on Linux
 
 - Live USB connection and machine status, polled every three seconds.
 - SVG upload and preview of the processed paths actually used for motion.
-- Uniform scaling, placement in millimeters, bounds validation within 304 × 304 mm.
+- Uniform scaling and placement within 304 × 304 mm. Drag the uploaded SVG on the pad; coordinate fields update automatically. Arrow keys move a selected design 1 mm, or 10 mm with Shift. Dragging stays inside the pad, clears readiness confirmation, and is disabled during jobs.
 - Motion-only testing, pen, and cut modes; speed, pressure, and multiple passes.
 - Carriage travel to zero or the documented 304 mm usable width.
 - Cancel remaining movements after the current buffered movement completes.
