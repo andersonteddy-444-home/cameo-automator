@@ -1,0 +1,14 @@
+[Unit]
+Description=Cameo 2 local web controller
+After=network.target
+
+[Service]
+WorkingDirectory=%h/cameo-controller
+ExecStart=%h/cameo-controller/.venv/bin/python %h/cameo-controller/app.py
+EnvironmentFile=-%h/cameo-controller/host.env
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
